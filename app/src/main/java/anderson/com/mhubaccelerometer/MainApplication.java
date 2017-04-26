@@ -7,6 +7,7 @@ import anderson.com.mhubaccelerometer.controller.AppController;
 /**
  * Created by lcmuniz on 29/12/16.
  */
+
 public class MainApplication extends Application {
 
     private AppController appController;

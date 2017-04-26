@@ -10,11 +10,9 @@ public class ServiceItem {
     public String serviceName;
     public boolean selected;
 
-
-
     @Override
     public boolean equals(Object o) {
-        ServiceItem obj = (ServiceItem) o;
+        final ServiceItem obj = (ServiceItem) o;
         return (obj.serviceName.equals(this.serviceName)) && (obj.publisher_id.equals(this.publisher_id));
     }
 }

@@ -17,7 +17,7 @@ import br.pucrio.inf.lac.mhubcddl.cddl.util.Provider;
 
 public class AppController {
 
-    private final String clientId = "bertodetacio@gmail.com";
+    private final String clientId = "lcmuniz@gmail.com";
     private final Publisher publisher;
     private final Subscriber subscriber;
     private final ArrayList<ServiceItem> services = new ArrayList<>();
@@ -29,10 +29,6 @@ public class AppController {
 
         final ConnectionService connectionService = ConnectionService.getInstance();
         connectionService.setClientID(clientId);
-        connectionService.setCleanSession(false);
-        connectionService.setHost(ConnectionService.MOSQUITTO_HOST);
-        connectionService.startLocalBroker();
-        connectionService.setPublishConnectionChangedStatus(true);
         connectionService.connect();
 
         publisher = Provider.newPublisher();

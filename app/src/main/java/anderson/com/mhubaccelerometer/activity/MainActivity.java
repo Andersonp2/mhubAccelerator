@@ -12,16 +12,11 @@ import anderson.com.mhubaccelerometer.R;
 import anderson.com.mhubaccelerometer.adapter.SensorDataMessageAdapter;
 import anderson.com.mhubaccelerometer.controller.AppController;
 import anderson.com.mhubaccelerometer.domain.ServiceItem;
-import br.pucrio.inf.lac.mhubcddl.cddl.listeners.IClientQoSListener;
-import br.pucrio.inf.lac.mhubcddl.cddl.listeners.IPublisherListener;
 import br.pucrio.inf.lac.mhubcddl.cddl.listeners.ISubscriberListener;
-import br.pucrio.inf.lac.mhubcddl.cddl.message.ConnectionChangedStatusMessage;
 import br.pucrio.inf.lac.mhubcddl.cddl.message.Message;
 import br.pucrio.inf.lac.mhubcddl.cddl.message.QueryResponseMessage;
 import br.pucrio.inf.lac.mhubcddl.cddl.message.SensorDataMessage;
 import br.pucrio.inf.lac.mhubcddl.cddl.message.ServiceInformationMessage;
-import br.pucrio.inf.lac.mhubcddl.cddl.qos.LivelinessQoS;
-import br.pucrio.inf.lac.mhubcddl.cddl.qos.ReliabilityQoS;
 import br.pucrio.inf.lac.mhubcddl.cddl.services.LocalDirectoryService;
 import br.pucrio.inf.lac.mhubcddl.cddl.services.QoCEvaluatorService;
 import br.pucrio.inf.lac.mhubcddl.mhub.components.AppUtils;
@@ -31,12 +26,17 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private AppController app;
-    ArrayList<SensorDataMessage> listItems;
-    //CimArrayAdapter adapter;
-    SensorDataMessageAdapter adapter;
+    private final int MY_ACCESS_FINE_LOCATION = 9;
 
-    long RETURN_CODE = 881821;
+    private long returnCode = 881821;
+
+    private AppController app;
+
+    private ArrayList<SensorDataMessage> listItems;
+
+    private SensorDataMessageAdapter adapter;
+
+    private boolean servicesStarted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,41 +45,31 @@ public class MainActivity extends AppCompatActivity {
 
 
         app = ((MainApplication) getApplication()).getAppController();
+        app.getSubscriber().setSubscriberListener(subscriberListener);
 
-        final ListView msgs = (ListView) findViewById(R.id.msgs);
+        final ListView msgs = (ListView) findViewById(R.id.activity_main_msgs);
         listItems = new ArrayList<SensorDataMessage>();
 
-
-        //adapter = new CimArrayAdapter(this, listItems);
         adapter = new SensorDataMessageAdapter(this);
+
         msgs.setAdapter(adapter);
-
-        app.getPublisher().setPublisherListener(publisherListener);
-        app.getPublisher().setPublisherQoCListener(publisherQoSListener);
-
-        app.getSubscriber().setSubscriberListener(subscriberListener);
-        app.getSubscriber().setSubscriberQoSListener(subscriberQoSListener);
-
-        //QoS
-        ReliabilityQoS reliabilityQoS = new ReliabilityQoS();
-        reliabilityQoS.setKind(ReliabilityQoS.EXACTLY_ONCE);
-
-        //app.publisher.setReliabilityQoS(reliabilityQoS);
-        app.getSubscriber().setReliabilityQoS(reliabilityQoS);
-
-
-        LivelinessQoS livelinessQoS = new LivelinessQoS();
-        livelinessQoS.setkind(LivelinessQoS.AUTOMATIC);
-        livelinessQoS.setLeaseDuration(1000);
-
-        ///app.subscriber.setLivelinessQoS(livelinessQoS);
-        app.getSubscriber().subscribeLivelenessTopic();
-        app.getSubscriber().subscribeConnectionChangedStatusTopic();
-        ///app.publisher.setLivelinessQoS(livelinessQoS);
 
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startServices();
+        servicesStarted = false;
+    }
+
+    @Override
+    protected void onStop() {
+        servicesStarted = true;
+        super.onStop();
+        stopServices();
+    }
 
     private void startServices() {
 
@@ -111,25 +101,6 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private IPublisherListener publisherListener = new IPublisherListener() {
-
-
-        @Override
-        public void onConnect() {
-
-        }
-
-        @Override
-        public void onDisconnect() {
-
-        }
-
-        @Override
-        public void onMessageDelivered(Message message) {
-
-        }
-    };
-
     private ISubscriberListener subscriberListener = new ISubscriberListener() {
 
         @Override
@@ -143,10 +114,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onMessageArrived(Message message) {
-            if (message instanceof SensorDataMessage) {
+        public void onMessageArrived(Message message)  {
+            if(message instanceof SensorDataMessage){
                 final SensorDataMessage sensorDataMessage = (SensorDataMessage) message;
-                AppUtils.logger('d', TAG, "Message arrived on topic " + sensorDataMessage.getTopic() + ": " + sensorDataMessage.getServiceName());
+                AppUtils.logger('d', TAG, "onMessageArrived: " + sensorDataMessage);
 
                 runOnUiThread(new Runnable() {
                     @Override
@@ -155,17 +126,17 @@ public class MainActivity extends AppCompatActivity {
                         adapter.notifyDataSetChanged();
                     }
                 });
-            } else if (message instanceof QueryResponseMessage) {
-                QueryResponseMessage queryResponseMessage = (QueryResponseMessage) message;
-                AppUtils.logger('d', TAG, "Response arrived on topic " + queryResponseMessage.getTopic() + ": " + queryResponseMessage);
+            }
+            else if(message instanceof QueryResponseMessage){
+                final QueryResponseMessage queryResponseMessage = (QueryResponseMessage) message;
+                AppUtils.logger('d', TAG, "onMessageArrived: " + queryResponseMessage);
 
-                if (queryResponseMessage.getQueryMessage().getReturnCode() == RETURN_CODE) {
-                    //AppUtils.logger('d', TAG, "This response is for the result code " + qrm.getQueryMessage().getReturnCode());
+                if (queryResponseMessage.getQueryMessage().getReturnCode() == returnCode) {
 
-                    ArrayList<ServiceItem> services = app.getServices();
+                    final ArrayList<ServiceItem> services = app.getServices();
 
                     for (ServiceInformationMessage sim : queryResponseMessage.getServiceInformationMessageList()) {
-                        ServiceItem si = new ServiceItem();
+                        final ServiceItem si = new ServiceItem();
                         si.publisher_id = sim.getPublisherID();
                         si.serviceName = sim.getServiceName();
 
@@ -173,100 +144,19 @@ public class MainActivity extends AppCompatActivity {
                             services.add(si);
                         }
 
-                        //pubsub.unsubscribeSensorDataTopicByServiceInformationMessage(sim);
                     }
 
-//                    Intent intent = new Intent(MainActivity.this, SubUnsubActivity.class);
-                    //Gson gs = new Gson();
-                    //intent.putExtra("items", gs.toJson(items));
-//                    startActivity(intent);
+                    final Intent intent = new Intent(MainActivity.this, SubUnsubActivity.class);
+                    startActivity(intent);
                     return;
                 }
 
                 for (ServiceInformationMessage sim : queryResponseMessage.getServiceInformationMessageList()) {
                     app.getSubscriber().subscribeSensorDataTopicByServiceInformationMessage(sim);
-                    //pubsub.unsubscribeSensorDataTopicByServiceInformationMessage(sim);
                 }
-            }
 
-        }
-
-
-    };
-
-    private IClientQoSListener publisherQoSListener = new IClientQoSListener() {
-
-
-        @Override
-        public void onExpectedDeadlineMissed() {
-
-        }
-
-        @Override
-        public void onExpectedDeadlineFulfilled() {
-
-        }
-
-        @Override
-        public void onExpectedLivelinessMissed() {
-
-        }
-
-        @Override
-        public void onExpectedLivelinessFulfilled() {
-
-        }
-
-        @Override
-        public void onLifespanExpired(Message message) {
-
-        }
-
-        @Override
-        public void onClientConnectionChangedStatus(String clientId, int status) {
-
-        }
-
-
-    };
-
-    private IClientQoSListener subscriberQoSListener = new IClientQoSListener() {
-
-
-        @Override
-        public void onExpectedDeadlineMissed() {
-            AppUtils.logger('e', TAG, "Deadline Missed");
-        }
-
-        @Override
-        public void onExpectedDeadlineFulfilled() {
-            AppUtils.logger('d', TAG, "Deadline Fulfilled");
-        }
-
-        @Override
-        public void onExpectedLivelinessMissed() {
-            AppUtils.logger('e', TAG, "Liveliness Missed");
-        }
-
-        @Override
-        public void onExpectedLivelinessFulfilled() {
-            AppUtils.logger('d', TAG, "Liveliness Fulfilled");
-        }
-
-        @Override
-        public void onLifespanExpired(Message message) {
-            AppUtils.logger('d', TAG, "Lifespan Expired");
-        }
-
-        @Override
-        public void onClientConnectionChangedStatus(String clientId, int status) {
-            if (status == ConnectionChangedStatusMessage.CLIENT_CONNECTED) {
-                AppUtils.logger('d', TAG, "Client " + clientId + " is Connected");
-            } else {
-                AppUtils.logger('d', TAG, "Client " + clientId + " is Disonnected");
             }
         }
-
 
     };
 
