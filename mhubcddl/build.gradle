@@ -1,0 +1,58 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion '25.0.0'
+
+    defaultConfig {
+        minSdkVersion 23
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    dexOptions {
+        jumboMode true
+        javaMaxHeapSize "4g"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.android.support:design:23.0.1'
+    compile 'com.android.support:multidex:1.0.1'
+    compile 'org.greenrobot:eventbus:3.0.0'
+    compile 'com.google.android.gms:play-services-appindexing:8.4.0'
+    compile files('libs/acra-4.5.0.jar')                
+    compile files('libs/asper-4.9.0.jar')
+    compile files('libs/BioHarnessBT.jar')
+    compile files('libs/ClientLib.jar')
+    compile files('libs/commons-lang3-3.4.jar')
+    compile files('libs/gson-2.8.0.jar')
+    compile files('libs/HxMBT.jar')
+    compile files('libs/lib.jar')
+    compile files('libs/org.eclipse.paho.android.service-1.1.1-20160907.104533-5.jar')
+    compile files('libs/org.eclipse.paho.client.mqttv3-1.1.1.jar')
+    compile files('libs/ormlite-android-4.48.jar')
+    compile files('libs/ormlite-core-4.48.jar')
+    compile files('libs/sqlite-jdbc-3.8.11.2.jar')
+    compile project(path: ':parser_commons')
+    compile project(path: ':netty_parser')
+    compile project(path: ':microbroker')
+    compile 'com.jakewharton:butterknife:8.5.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
+
+}
