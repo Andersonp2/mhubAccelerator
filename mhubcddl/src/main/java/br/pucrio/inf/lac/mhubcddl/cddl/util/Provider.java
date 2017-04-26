@@ -33,7 +33,12 @@ public class Provider {
 
     public static QoCEvaluator getQoCEvaluator() {
         if (qocEvaluator == null) {
-            qocEvaluator= new QoCEvaluatorImpl();
+            try{
+                qocEvaluator= new QoCEvaluatorImpl();
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
+
         }
         return qocEvaluator;
     }
